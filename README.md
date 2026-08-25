@@ -1,74 +1,75 @@
-🎧 AI Audio Source Separation Pipeline
-A high-performance, asynchronous backend pipeline designed to isolate vocals, instruments, and custom stems from mixed audio files or direct YouTube tracks using Meta's HTDemucs (Hybrid Transformer Demucs) and FastAPI.
+# MusicSplit Studio
 
-🏗️ Architectural Blueprint & Data Flow
-"""[ Client / UI ] 
-      │  (Sends YouTube URL or Direct File)
-      ▼
-┌──────────────────────────────────────────────┐
-│             FastAPI Backend Layer            │
-│  - Endpoint routing & validation             │
-│  - Task coordination & temp file management  │
-└──────────────────────┬───────────────────────┘
-                       │
-         ┌─────────────┴─────────────↓ (If YouTube URL)
-         ▼                           
-┌─────────────────┐         ┌──────────────────────────────────┐
-│ Stream Downloader│───────►│          HTDemucs Engine         │
-└─────────────────┘         │  - Dual-Domain U-Net (Waveform)  │
-                            │  - Cross-Domain Transformer Core │
-                            └──────────────────┬───────────────┘
-                                               │
-                                               ▼
-                            ┌──────────────────────────────────┐
-                            │      Isolated Output Stems       │
-                            │  (Vocals, Instrumental, Drums...)│
-                            └──────────────────────────────────┘"""
+MusicSplit Studio is an audio stem-separation prototype. It provides a Streamlit interface for uploading audio or entering a YouTube URL, with a FastAPI service prepared for upload and processing endpoints.
 
-⚙️ Core Component Breakdown
-A. The Ingestion & Routing Layer (FastAPI)
-Asynchronous REST Endpoints: Manages incoming requests (POST /process-youtube or POST /upload-audio) using async pathways, ensuring the event loop remains 
-unblocked during heavy CPU/GPU operations.
-Payload & File Lifecycle Management: Automatically initializes isolated temporary directories (tempfile) to safely handle downloads, stream conversions, and
-immediate cleanup to prevent server storage bloat.
+## Project Architecture
 
+```text
+MP3_POST-MORTEM/
+├── page.py                 # Streamlit web UI and user workflows
+├── backend.py              # FastAPI application and HTTP endpoints
+├── brain.ipynb             # Audio-processing experiments and prototypes
+├── audio/                  # Source audio files used during development
+├── audio-generated/        # Generated or separated audio output
+├── pyproject.toml          # Project metadata and Python dependencies
+├── uv.lock                 # Locked dependency versions
+├── .gitignore              # Local files excluded from version control
+└── README.md               # Project documentation
+```
 
-B. The Stream Fetcher (yt-dlp / PyTube)
-Target Resolution: Extracts raw, high-quality audio media streams directly from target URLs.
-Stream Normalization: Converts incoming web video streams into uniform PCM audio codecs (.mp3 / .wav) via integrated ffmpeg subprocess pipelines to prepare
-inputs for deep learning inference.
+### Runtime Flow
 
+```text
+User
+  │
+  ├── Uploads an audio file
+  └── Provides a YouTube URL
+       │
+       ▼
+Streamlit UI (`page.py`)
+       │
+       ├── FastAPI service (`backend.py`)
+       │       │
+       │       ▼
+       │   Audio separation pipeline
+       │       │
+       │       ├── Demucs / HTDemucs model
+       │       └── Generated stems
+       │              │
+       │              ▼
+       │      `audio-generated/`
+       │
+       └── Current UI prototype flow
+```
 
-The Deep Learning Separation Core (HTDemucs)
-Hybrid Architecture: Utilizes Meta's HTDemucs v4, combining Waveform Temporal Convolutions with Spectrogram Cross-Domain Transformers.
+## Components
 
-Inference Execution: Processes normalized audio arrays layer-by-layer through self-attention and cross-attention blocks to cleanly isolate mixed sound waves 
-into distinct stems (Vocals, Drums, Bass, and Other accompaniments).
+- **Streamlit UI:** Runs the interactive studio interface from `page.py`.
+- **FastAPI backend:** Exposes the service application defined in `backend.py`.
+- **Separation engine:** Uses Demucs for source separation when connected to the processing workflow.
+- **Notebook:** Contains exploratory work in `brain.ipynb`.
+- **Audio directories:** `audio/` holds development inputs, while `audio-generated/` is intended for generated results.
 
-🛠️ Production Design Considerations
-Process Isolation: Because deep learning frameworks like PyTorch and Demucs consume significant RAM/VRAM, separating execution inside worker subprocesses or 
-task queues (e.g., Celery with Redis) prevents memory leaks from crashing the core FastAPI server instance.
+## Setup
 
-Model Caching: Pre-loads htdemucs weights into memory during container startup to eliminate cold-start latency for incoming user requests.
+Python 3.12 or newer is required.
 
-
-🚀 Quick Start Setup
-Prerequisites
-Python 3.10+
-
-FFmpeg installed on your system path (sudo apt install ffmpeg or brew install ffmpeg)
-
-Istallation & Run
-Clone the repository: git clone https://github.com/your-username/audio-separation-backend.git
-cd audio-separation-backend
-
-Install dependencies:uv venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+```bash
 uv sync
+```
 
-start fastapi and streamlit serer.
+## Run
 
-📄 License
-Distributed under the MIT License. See LICENSE for more information.
+Start the Streamlit interface:
 
+```bash
+uv run streamlit run page.py
+```
 
+Start the FastAPI service in a separate terminal:
+
+```bash
+uv run fastapi dev backend.py
+```
+
+The UI and API are currently prototype surfaces: the Streamlit processing results use placeholder audio data, and the backend processing endpoint is not yet connected to the full Demucs pipeline.
