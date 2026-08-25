@@ -2,8 +2,7 @@
 A high-performance, asynchronous backend pipeline designed to isolate vocals, instruments, and custom stems from mixed audio files or direct YouTube tracks using Meta's HTDemucs (Hybrid Transformer Demucs) and FastAPI.
 
 🏗️ Architectural Blueprint & Data Flow
-
-[ Client / UI ] 
+"""[ Client / UI ] 
       │  (Sends YouTube URL or Direct File)
       ▼
 ┌──────────────────────────────────────────────┐
@@ -15,16 +14,16 @@ A high-performance, asynchronous backend pipeline designed to isolate vocals, in
          ┌─────────────┴─────────────↓ (If YouTube URL)
          ▼                           
 ┌─────────────────┐         ┌──────────────────────────────────┐
-│                 │         │         HTDemucs Engine          │
-│ Stream Downloader│────────►│  - Dual-Domain U-Net (Waveform)  │
-└─────────────────┘         │  - Cross-Domain Transformer Core │
+│ Stream Downloader│───────►│          HTDemucs Engine         │
+└─────────────────┘         │  - Dual-Domain U-Net (Waveform)  │
+                            │  - Cross-Domain Transformer Core │
                             └──────────────────┬───────────────┘
                                                │
                                                ▼
                             ┌──────────────────────────────────┐
                             │      Isolated Output Stems       │
                             │  (Vocals, Instrumental, Drums...)│
-                            └──────────────────────────────────┘
+                            └──────────────────────────────────┘"""
 
 ⚙️ Core Component Breakdown
 A. The Ingestion & Routing Layer (FastAPI)
