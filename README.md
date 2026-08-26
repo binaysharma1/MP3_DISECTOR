@@ -72,4 +72,10 @@ Start the FastAPI service in a separate terminal:
 uv run fastapi dev backend.py
 ```
 
-The UI and API are currently prototype surfaces: the Streamlit processing results use placeholder audio data, and the backend processing endpoint is not yet connected to the full Demucs pipeline.
+Run both services at the same time. Streamlit uploads the selected file as multipart form data to `POST /upload`; the API runs the reusable Demucs processor from `brain.py` and returns URLs for the generated vocals and instrumental MP3 files. The notebook contains the original exploratory version of this processing logic.
+
+The Streamlit UI assumes the API is at `http://localhost:8000`. Set `MUSICSPLIT_API_URL` when it is hosted elsewhere:
+
+```bash
+MUSICSPLIT_API_URL=http://localhost:8000 uv run streamlit run page.py
+```

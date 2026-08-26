@@ -39,6 +39,7 @@ source = { editable = "." }
 dependencies = [
     { name = "demucs" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "httpx" },
     { name = "streamlit" },
     { name = "torchaudio" },
 ]
@@ -47,6 +48,7 @@ dependencies = [
 requires-dist = [
     { name = "demucs", specifier = ">=4.1.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.141.1" },
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "streamlit", specifier = ">=1.62.0" },
     { name = "torchaudio", specifier = ">=2.11.0" },
 ]

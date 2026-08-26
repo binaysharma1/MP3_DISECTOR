@@ -1,4 +1,7 @@
+import os
 import time
+
+import httpx
 import streamlit as st
 
 # 1. Page Configuration & Custom CSS Styling
@@ -111,42 +114,52 @@ with tab1:
             process_btn = st.button("🚀 Run AI Stem Separation", use_container_width=True, type="primary")
 
         if process_btn:
-            with st.status("🔄 Processing audio through AI model...", expanded=True) as status:
-                st.write("Initializing Demucs neural network architecture...")
-                time.sleep(1.2)
-                st.write("Isolating vocals and backing instrumental frequencies...")
-                time.sleep(1.5)
-                st.write("Reconstructing high-fidelity stereo outputs...")
-                time.sleep(1.0)
-                status.update(label="✅ Separation Complete!", state="complete", expanded=False)
+            api_url = os.getenv("MUSICSPLIT_API_URL", "http://localhost:8000")
+            try:
+                with st.spinner("Processing audio through the AI model..."):
+                    response = httpx.post(
+                        f"{api_url}/upload",
+                        files={
+                            "file": (
+                                uploaded_file.name,
+                                uploaded_file.getvalue(),
+                                uploaded_file.type or "application/octet-stream",
+                            )
+                        },
+                        timeout=None,
+                    )
+                response.raise_for_status()
+                result = response.json()
+                st.session_state["latest_result"] = result
+            except httpx.HTTPError as error:
+                st.error(f"The backend could not process this file: {error}")
 
-            st.balloons()
+        result = st.session_state.get("latest_result")
+        if result:
+            api_url = os.getenv("MUSICSPLIT_API_URL", "http://localhost:8000")
+            st.success("Separation complete. Your stems are ready.")
             st.markdown("---")
             st.subheader("🎵 Resulting Stems")
-
-            # Mock layout for outputs
             res_col1, res_col2 = st.columns(2)
-            with res_col1:
-                st.markdown("#### 🎤 Isolated Vocals")
-                st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3") # Placeholder link for UI experience
-                st.download_button(
-                    label="📥 Download Vocals (.mp3)",
-                    data=b"mock_audio_bytes",
-                    file_name="vocals_stem.mp3",
-                    mime="audio/mp3",
-                    use_container_width=True,
-                )
-
-            with res_col2:
-                st.markdown("#### 🎸 Instrumental Track")
-                st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3") # Placeholder link for UI experience
-                st.download_button(
-                    label="📥 Download Instrumental (.mp3)",
-                    data=b"mock_audio_bytes",
-                    file_name="instrumental_stem.mp3",
-                    mime="audio/mp3",
-                    use_container_width=True,
-                )
+            for column, label, stem_name in (
+                (res_col1, "🎤 Isolated Vocals", "vocals"),
+                (res_col2, "🎸 Instrumental Track", "instrumental"),
+            ):
+                stem_url = f"{api_url}{result['stems'][stem_name]}"
+                stem_response = httpx.get(stem_url, timeout=None)
+                stem_response.raise_for_status()
+                stem_bytes = stem_response.content
+                with column:
+                    st.markdown(f"#### {label}")
+                    st.audio(stem_bytes, format="audio/mp3")
+                    st.download_button(
+                        label=f"📥 Download {stem_name.title()} (.mp3)",
+                        data=stem_bytes,
+                        file_name=f"{stem_name}_stem.mp3",
+                        mime="audio/mp3",
+                        key=f"download_{stem_name}_{result['job_id']}",
+                        use_container_width=True,
+                    )
 
 # --- TAB 2: YOUTUBE URL CONVERTER ---
 with tab2:
