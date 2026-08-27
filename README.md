@@ -45,7 +45,7 @@ Streamlit UI (`page.py`)
 ## Components
 
 - **Streamlit UI:** Runs the interactive studio interface from `page.py`.
-- **FastAPI backend:** Exposes the service application defined in `backend.py`.
+- **FastAPI backend:** Exposes upload processing and a yt-dlp YouTube download endpoint defined in `backend.py`.
 - **Separation engine:** Uses Demucs for source separation when connected to the processing workflow.
 - **Notebook:** Contains exploratory work in `brain.ipynb`.
 - **Audio directories:** `audio/` holds development inputs, while `audio-generated/` is intended for generated results.
@@ -72,7 +72,9 @@ Start the FastAPI service in a separate terminal:
 uv run fastapi dev backend.py
 ```
 
-Run both services at the same time. Streamlit uploads the selected file as multipart form data to `POST /upload`; the API runs the reusable Demucs processor from `brain.py` and returns URLs for the generated vocals and instrumental MP3 files. The notebook contains the original exploratory version of this processing logic.
+Run both services at the same time. Streamlit uploads the selected file as multipart form data to `POST /upload`. YouTube requests use `POST /youtube` with `mode: "raw"` for a high-quality audio-only MP3 or `mode: "separate"` to download the best available audio and generate vocals and instrumental MP3 files. The notebook contains the original exploratory version of this processing logic.
+
+The YouTube workflow requires both yt-dlp and FFmpeg. `uv sync` installs yt-dlp; install the system FFmpeg package separately if it is not already available on the host.
 
 The Streamlit UI assumes the API is at `http://localhost:8000`. Set `MUSICSPLIT_API_URL` when it is hosted elsewhere:
 

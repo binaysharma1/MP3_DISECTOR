@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28.0",
     "streamlit>=1.62.0",
     "torchaudio>=2.11.0",
+    "yt-dlp>=2026.3.17",
 ]
 
 [tool.setuptools]

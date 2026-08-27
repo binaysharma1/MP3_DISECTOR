@@ -1,4 +1,5 @@
 from pathlib import Path
+from subprocess import run
 
 import torch
 import torchaudio
@@ -17,7 +18,31 @@ def _get_model():
     return _model
 
 
-def separate_audio(input_path: Path, output_dir: Path) -> None:
+def _save_mp3(waveform: torch.Tensor, sample_rate: int, output_path: Path, bitrate: str) -> None:
+    wav_path = output_path.with_suffix(".wav")
+    torchaudio.save(str(wav_path), waveform, sample_rate, format="wav")
+    try:
+        run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                str(wav_path),
+                "-codec:a",
+                "libmp3lame",
+                "-b:a",
+                f"{bitrate}k",
+                str(output_path),
+            ],
+            check=True,
+        )
+    finally:
+        wav_path.unlink(missing_ok=True)
+
+
+def separate_audio(input_path: Path, output_dir: Path, bitrate: str = "320") -> None:
     """Separate an audio file into vocals and instrumental MP3 files."""
     model = _get_model()
     waveform, sample_rate = torchaudio.load(str(input_path))
@@ -37,7 +62,5 @@ def separate_audio(input_path: Path, output_dir: Path) -> None:
         sources[0, model.sources.index(source)]
         for source in ("drums", "bass", "other")
     ).cpu()
-    torchaudio.save(str(output_dir / "vocals.mp3"), vocals, model.samplerate, format="mp3")
-    torchaudio.save(
-        str(output_dir / "instrumental.mp3"), instrumental, model.samplerate, format="mp3"
-    )
+    _save_mp3(vocals, model.samplerate, output_dir / "vocals.mp3", bitrate)
+    _save_mp3(instrumental, model.samplerate, output_dir / "instrumental.mp3", bitrate)

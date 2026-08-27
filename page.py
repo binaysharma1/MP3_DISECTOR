@@ -1,5 +1,4 @@
 import os
-import time
 
 import httpx
 import streamlit as st
@@ -179,35 +178,65 @@ with tab2:
         download_extract_btn = st.button(
             "⬇️ Download & Dissect from YouTube", use_container_width=True, type="primary"
         )
+    with col_y2:
+        download_raw_btn = st.button("⬇️ Download Raw MP3", use_container_width=True)
 
-    if download_extract_btn:
+    selected_bitrate = audio_quality.split()[0]
+    requested_mode = "separate" if download_extract_btn else "raw" if download_raw_btn else None
+
+    if requested_mode:
         if not yt_url:
             st.error("Please enter a valid YouTube link first.")
         else:
-            with st.status("🌐 Connecting to YouTube & Processing...", expanded=True) as status_yt:
-                st.write("Fetching media stream via yt-dlp...")
-                time.sleep(1.5)
-                st.write("Converting container to high-rate MP3...")
-                time.sleep(1.0)
-                st.write("Running audio separation model...")
-                time.sleep(1.8)
-                status_yt.update(label="✨ Extraction & Separation Finished!", state="complete", expanded=False)
-
-            st.success("Your stems are ready for download!")
-            
-            # Display columns for 2 or 4 stems depending on user selection
-            st.markdown("### 📦 Dissected Output Stems")
-            y_col1, y_col2 = st.columns(2)
-            
-            with y_col1:
-                st.markdown("##### 🎙️ Vocals Stem")
-                st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3")
-                st.download_button("Download Vocals", b"data", "youtube_vocals.mp3", key="y_voc", use_container_width=True)
-                
-            with y_col2:
-                st.markdown("##### 🎹 Instrumental Backing")
-                st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3")
-                st.download_button("Download Instrumental", b"data", "youtube_instrumental.mp3", key="y_inst", use_container_width=True)
+            api_url = os.getenv("MUSICSPLIT_API_URL", "http://localhost:8000")
+            try:
+                with st.spinner("Downloading and processing audio..."):
+                    response = httpx.post(
+                        f"{api_url}/youtube",
+                        json={"url": yt_url, "mode": requested_mode, "bitrate": selected_bitrate},
+                        timeout=None,
+                    )
+                response.raise_for_status()
+                youtube_result = response.json()
+                if requested_mode == "raw":
+                    raw_response = httpx.get(f"{api_url}{youtube_result['raw']}", timeout=None)
+                    raw_response.raise_for_status()
+                    st.success("Raw high-quality MP3 is ready.")
+                    st.audio(raw_response.content, format="audio/mp3")
+                    st.download_button(
+                        "📥 Download Raw MP3",
+                        raw_response.content,
+                        "youtube_raw.mp3",
+                        mime="audio/mp3",
+                        key=f"youtube_raw_{youtube_result['job_id']}",
+                        use_container_width=True,
+                    )
+                else:
+                    st.success("Your stems are ready for download!")
+                    st.markdown("### 📦 Dissected Output Stems")
+                    y_col1, y_col2 = st.columns(2)
+                    for column, label, stem_name in (
+                        (y_col1, "🎙️ Vocals Stem", "vocals"),
+                        (y_col2, "🎹 Instrumental Backing", "instrumental"),
+                    ):
+                        stem_response = httpx.get(
+                            f"{api_url}{youtube_result['stems'][stem_name]}", timeout=None
+                        )
+                        stem_response.raise_for_status()
+                        with column:
+                            st.markdown(f"##### {label}")
+                            st.audio(stem_response.content, format="audio/mp3")
+                            st.download_button(
+                                f"📥 Download {stem_name.title()}",
+                                stem_response.content,
+                                f"youtube_{stem_name}.mp3",
+                                mime="audio/mp3",
+                                key=f"youtube_{stem_name}_{youtube_result['job_id']}",
+                                use_container_width=True,
+                            )
+            except httpx.HTTPError as error:
+                detail = error.response.json().get("detail", str(error)) if error.response else str(error)
+                st.error(f"YouTube processing failed: {detail}")
 
 # --- TAB 3: STUDIO DASHBOARD ---
 with tab3:
