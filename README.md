@@ -1,6 +1,6 @@
 # MusicSplit Studio
 
-MusicSplit Studio is an audio stem-separation prototype. It provides a Streamlit interface for uploading audio or entering a YouTube URL, with a FastAPI service prepared for upload and processing endpoints.
+MusicSplit Studio is an audio stem-separation prototype. It provides a Streamlit interface for uploading audio or entering a YouTube URL, with a FastAPI service prepared for upload and processing endpoints...
 
 ## Project Architecture
 
